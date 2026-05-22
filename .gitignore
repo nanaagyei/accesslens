@@ -1,0 +1,50 @@
+# Internal docs (not for public repo)
+docs/
+HANDOFF.md
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# Node
+node_modules/
+.next/
+out/
+
+# Models and weights
+models/*
+!models/.gitkeep
+*.npz
+*.pt
+
+# Media (except test fixtures)
+*.jpg
+*.png
+*.mp4
+!backend/tests/fixtures/*.jpg
+
+# Eval results
+eval/results/*
+!eval/results/.gitkeep
+
+# Demo video
+demo/final.mp4
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Env
+.env
+.env.local

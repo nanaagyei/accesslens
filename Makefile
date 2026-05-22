@@ -1,4 +1,4 @@
-.PHONY: setup setup-backend setup-frontend run run-backend run-frontend test benchmark fmt lint
+.PHONY: setup setup-backend setup-frontend run run-backend run-frontend test test-backend test-frontend benchmark fmt lint
 
 setup: setup-backend setup-frontend
 
@@ -21,8 +21,13 @@ run:
 	@echo "  Terminal 1: make run-backend"
 	@echo "  Terminal 2: make run-frontend"
 
-test:
+test: test-backend test-frontend
+
+test-backend:
 	.venv/bin/pytest backend/tests -v
+
+test-frontend:
+	cd frontend && npm test
 
 benchmark:
 	.venv/bin/python backend/scripts/benchmark.py

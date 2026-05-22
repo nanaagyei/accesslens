@@ -7,11 +7,13 @@ import { Detection, DetectionResponse } from "@/lib/types";
 interface WebcamCaptureProps {
   onDetections: (detections: Detection[], inferMs: number) => void;
   onConnectionChange: (connected: boolean) => void;
+  paused?: boolean;
 }
 
 export default function WebcamCapture({
   onDetections,
   onConnectionChange,
+  paused = false,
 }: WebcamCaptureProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -20,6 +22,8 @@ export default function WebcamCapture({
   const inFlightRef = useRef(false);
   const inFlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const captureIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pausedRef = useRef(paused);
+  pausedRef.current = paused;
 
   const handleMessage = useCallback(
     (response: DetectionResponse) => {
@@ -39,8 +43,8 @@ export default function WebcamCapture({
     const ws = wsRef.current;
     if (!video || !canvas || !ws) return;
 
-    // In-flight guard: skip if previous frame hasn't returned
-    if (inFlightRef.current) return;
+    // Skip if paused (tab hidden) or in-flight
+    if (pausedRef.current || inFlightRef.current) return;
 
     const ctx = canvas.getContext("2d");
     if (!ctx) return;

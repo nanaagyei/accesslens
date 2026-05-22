@@ -13,8 +13,8 @@ Powered by [YOLO26 MLX](https://github.com/thewebAI/yolo-mlx) on Apple Silicon. 
 git clone https://github.com/nanaagyei/accesslens.git
 cd accesslens
 
-# Install the yolo-mlx package (sibling directory)
-cd ../yolo-mlx && pip install -e ".[convert]" && cd ../accesslens
+# Install the yolo-mlx package
+pip install "yolo-mlx[convert] @ git+https://github.com/nanaagyei/yolo-mlx.git"
 
 # Setup (installs Python + Node deps)
 make setup

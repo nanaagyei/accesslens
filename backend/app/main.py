@@ -3,7 +3,7 @@
 import logging
 
 import structlog
-from fastapi import FastAPI
+from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.app.ws import ws_endpoint
@@ -19,20 +19,22 @@ structlog.configure(
     logger_factory=structlog.stdlib.LoggerFactory(),
 )
 logging.basicConfig(level=logging.INFO, format="%(message)s")
+logger = logging.getLogger(__name__)
 
 app = FastAPI(title="AccessLens", version="0.1.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
-    allow_credentials=True,
+    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 
 @app.websocket("/ws")
-async def websocket_route(websocket):
+async def websocket_route(websocket: WebSocket):
+    origin = websocket.headers.get("origin", "unknown")
+    logger.info("WebSocket connection from origin: %s", origin)
     await ws_endpoint(websocket)
 
 

@@ -36,6 +36,9 @@ async def ws_endpoint(websocket: WebSocket) -> None:
         while True:
             message = await websocket.receive()
 
+            if message["type"] == "websocket.disconnect":
+                break
+
             if "text" in message:
                 # Frame metadata header
                 try:

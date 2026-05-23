@@ -35,6 +35,7 @@ function MainView() {
     logEntries,
     trackedDetections,
     speakText,
+    sessionStats,
   } = useNarrator();
   const { settings, updateSettings } = useSettings();
 
@@ -235,6 +236,8 @@ function MainView() {
             inferMs={inferMs}
             detectionCount={detections.length}
             sending={sending}
+            uniqueClasses={sessionStats.uniqueClasses}
+            totalObjectsSeen={sessionStats.totalObjectsSeen}
           />
         </div>
       </header>

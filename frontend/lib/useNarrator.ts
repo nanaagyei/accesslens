@@ -29,6 +29,12 @@ export function useNarrator() {
   const prevTrackIdsRef = useRef<Set<number>>(new Set());
   const lastAutoDescribeRef = useRef<number>(0);
 
+  // Session-level object tracking
+  const [sessionStats, setSessionStats] = useState({
+    uniqueLabels: new Set<string>(),
+    totalSeen: 0,
+  });
+
   // Lazy-init to avoid SSR issues with speechSynthesis
   const getTracker = useCallback(() => {
     if (!trackerRef.current) trackerRef.current = new Tracker();
@@ -108,6 +114,21 @@ export function useNarrator() {
       const tracked = tracker.update(detections, now);
       setTrackedDetections(tracked);
 
+      // Update session-level object counts
+      const newLabels = tracked
+        .filter((t) => !prevTrackIdsRef.current.has(t.id))
+        .map((t) => t.label);
+      if (newLabels.length > 0) {
+        setSessionStats((prev) => {
+          const updated = new Set(prev.uniqueLabels);
+          for (const l of newLabels) updated.add(l);
+          return {
+            uniqueLabels: updated,
+            totalSeen: prev.totalSeen + newLabels.length,
+          };
+        });
+      }
+
       // Scene change detection: if many new tracks appear at once, auto-describe
       const currentIds = new Set(tracked.map((t) => t.id));
       const prevIds = prevTrackIdsRef.current;
@@ -137,9 +158,16 @@ export function useNarrator() {
           speech.cancel();
         }
 
+        // Play proximity chime for high-priority near objects
+        const useChime =
+          result.candidate != null &&
+          result.candidate.zone_depth === "near" &&
+          result.candidate.priority >= 2.0;
+
         const spoken = speech.speak(result.utterance, {
           queuedAt: now,
           ttl_ms: UTTERANCE_TTL_MS,
+          chime: useChime,
           onEnd: () => {
             // Update narrator gap timing from actual speech end
             narrator.markSpeechEnded(Date.now());
@@ -198,5 +226,9 @@ export function useNarrator() {
     logEntries,
     trackedDetections,
     speakText,
+    sessionStats: {
+      uniqueClasses: sessionStats.uniqueLabels.size,
+      totalObjectsSeen: sessionStats.totalSeen,
+    },
   };
 }

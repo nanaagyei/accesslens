@@ -76,6 +76,13 @@ export default function DetectionOverlay({
         det.label.toLowerCase().includes(highlightLabel.toLowerCase());
       const color = labelColor(det.label);
 
+      // Scale opacity by confidence: high confidence = solid, low = faint
+      // Map confidence 0.3-1.0 to alpha 0.3-1.0
+      const alpha = isHighlighted
+        ? 1.0
+        : Math.max(0.3, Math.min(1.0, (det.confidence - 0.2) / 0.8));
+      ctx.globalAlpha = alpha;
+
       // Draw rounded box (thick + bright if highlighted)
       ctx.strokeStyle = isHighlighted ? "#facc15" : color;
       ctx.lineWidth = isHighlighted ? 4 : 2;
@@ -99,6 +106,8 @@ export default function DetectionOverlay({
       // Chip text
       ctx.fillStyle = "#000";
       ctx.fillText(text, chipX + 6, chipY + 14);
+
+      ctx.globalAlpha = 1.0;
     }
   }, [detections, width, height, highlightLabel]);
 

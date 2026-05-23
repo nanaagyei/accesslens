@@ -56,8 +56,11 @@ Everything runs locally. No internet required after setup.
 
 - **Smart narration** — announces new objects, zone transitions, and count changes without spamming
 - **Scene change detection** — auto-describes when you enter a new scene (3+ new objects appear)
+- **Proximity alert chime** — short audio tone before TTS for close, high-priority objects
 - **Voice search** — press F, type an object name, get spoken location feedback
 - **Blind mode** — blacks out screen to save battery; narration continues in background
+- **Confidence-scaled overlays** — bounding box opacity reflects detection confidence
+- **Session stats** — tracks total objects seen and unique types in the stats HUD
 - **On-device privacy** — zero data leaves your machine, no cloud APIs
 
 ## Model

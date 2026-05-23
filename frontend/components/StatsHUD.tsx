@@ -5,6 +5,8 @@ interface StatsHUDProps {
   inferMs: number;
   detectionCount: number;
   sending?: boolean;
+  uniqueClasses?: number;
+  totalObjectsSeen?: number;
 }
 
 export default function StatsHUD({
@@ -12,6 +14,8 @@ export default function StatsHUD({
   inferMs,
   detectionCount,
   sending = false,
+  uniqueClasses = 0,
+  totalObjectsSeen = 0,
 }: StatsHUDProps) {
   return (
     <div className="bg-zinc-900/80 text-zinc-400 text-xs font-mono px-3 py-2 rounded-lg space-y-0.5 border border-zinc-800/50">
@@ -32,6 +36,11 @@ export default function StatsHUD({
       </div>
       <div>Inference: {inferMs.toFixed(0)} ms</div>
       <div>Objects: {detectionCount}</div>
+      {totalObjectsSeen > 0 && (
+        <div className="text-zinc-500">
+          Session: {totalObjectsSeen} seen, {uniqueClasses} types
+        </div>
+      )}
       <div className="text-zinc-500">yolo26n</div>
     </div>
   );

@@ -76,6 +76,7 @@ export interface SpeakOptions {
   ttl_ms?: number;
   queuedAt?: number;
   onEnd?: () => void;
+  chime?: boolean;
 }
 
 /**
@@ -89,6 +90,7 @@ export class Speech {
   private _estDuration = 0;
   private rate = TTS_RATE;
   private muted = false;
+  private audioCtx: AudioContext | null = null;
 
   /** Load voices. Handles Safari async voiceschanged. */
   init(): void {
@@ -110,6 +112,28 @@ export class Speech {
 
   setMuted(muted: boolean): void {
     this.muted = muted;
+  }
+
+  /** Play a short proximity alert chime using Web Audio API. */
+  playChime(): void {
+    if (this.muted) return;
+    try {
+      if (!this.audioCtx) this.audioCtx = new AudioContext();
+      const ctx = this.audioCtx;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(880, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(660, ctx.currentTime + 0.1);
+      gain.gain.setValueAtTime(0.15, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.12);
+    } catch {
+      // AudioContext unavailable
+    }
   }
 
   isSpeaking(): boolean {
@@ -139,6 +163,11 @@ export class Speech {
     }
 
     const now = Date.now();
+
+    // Play proximity chime before speech if requested
+    if (opts.chime) {
+      this.playChime();
+    }
 
     // Cancel current speech
     speechSynthesis.cancel();

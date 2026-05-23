@@ -11,12 +11,23 @@ import { SettingsProvider, useSettings } from "@/lib/settings";
 import { useNarrator } from "@/lib/useNarrator";
 import { Detection } from "@/lib/types";
 
+const SHORTCUTS = [
+  { key: "Space", action: "Describe full scene" },
+  { key: "F", action: "Find object by name" },
+  { key: "M", action: "Toggle mute" },
+  { key: "B", action: "Toggle blind mode (screen off)" },
+  { key: "?", action: "Show/hide this help" },
+  { key: "Esc", action: "Exit search or close overlay" },
+];
+
 function MainView() {
   const [connected, setConnected] = useState(false);
   const [detections, setDetections] = useState<Detection[]>([]);
   const [inferMs, setInferMs] = useState(0);
   const [paused, setPaused] = useState(false);
   const [sending, setSending] = useState(false);
+  const [blindMode, setBlindMode] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
 
   const {
     processDetections,
@@ -54,14 +65,14 @@ function MainView() {
       if (!query.trim()) return;
       const q = query.trim().toLowerCase();
 
-      // Search tracked detections for a matching label
       const matches = trackedDetections.filter((t) =>
         t.label.toLowerCase().includes(q),
       );
 
       if (matches.length > 0) {
         const first = matches[0];
-        const depthPart = first.zone_depth !== "far" ? `, ${first.zone_depth}` : "";
+        const depthPart =
+          first.zone_depth !== "far" ? `, ${first.zone_depth}` : "";
         const text = `${first.label}, found, ${first.zone_x}${depthPart}`;
         setSearchResult(text);
         speakText(text);
@@ -93,20 +104,27 @@ function MainView() {
     setSending(active);
   }, []);
 
-  // Hotkeys: spacebar (describe-now), M (mute toggle), F (search), Escape (exit search)
+  // Hotkeys
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      // Escape exits search mode from anywhere
-      if (e.code === "Escape" && searchMode) {
-        exitSearch();
+      // Escape: exit search, close help, exit blind mode
+      if (e.code === "Escape") {
+        if (searchMode) {
+          exitSearch();
+          return;
+        }
+        if (showHelp) {
+          setShowHelp(false);
+          return;
+        }
         return;
       }
 
       // If typing in the search input, let it handle its own keys
-      if (e.target instanceof HTMLInputElement) {
-        return;
-      }
-      if (e.target instanceof HTMLTextAreaElement) {
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement
+      ) {
         return;
       }
 
@@ -117,13 +135,18 @@ function MainView() {
       if (e.code === "KeyM" && !e.repeat) {
         updateSettings({ muted: !settings.muted });
       }
+      if (e.code === "KeyB" && !e.repeat) {
+        setBlindMode((prev) => !prev);
+      }
       if (e.code === "KeyF" && !e.repeat && !searchMode) {
         e.preventDefault();
         setSearchMode(true);
         setSearchQuery("");
         setSearchResult(null);
         resetSearchTimeout();
-        // Focus will happen via useEffect below
+      }
+      if ((e.key === "?" || e.code === "Slash") && e.shiftKey && !e.repeat) {
+        setShowHelp((prev) => !prev);
       }
     };
     window.addEventListener("keydown", handler);
@@ -135,12 +158,12 @@ function MainView() {
     searchMode,
     exitSearch,
     resetSearchTimeout,
+    showHelp,
   ]);
 
   // Focus search input when search mode activates
   useEffect(() => {
     if (searchMode) {
-      // Small delay to let the input render
       requestAnimationFrame(() => searchInputRef.current?.focus());
     }
   }, [searchMode]);
@@ -161,6 +184,29 @@ function MainView() {
     return () => document.removeEventListener("visibilitychange", handler);
   }, []);
 
+  // Blind mode: screen off, narration continues
+  if (blindMode) {
+    return (
+      <main className="w-screen h-screen bg-black flex items-center justify-center cursor-none">
+        {/* Hidden webcam — keeps capturing and narrating */}
+        <div className="hidden">
+          <WebcamCapture
+            onDetections={handleDetections}
+            onConnectionChange={handleConnectionChange}
+            onFrameActivity={handleFrameActivity}
+            paused={paused}
+          />
+        </div>
+        <div className="text-center">
+          <div className="text-zinc-600 text-sm">
+            Screen off — narration active
+          </div>
+          <div className="text-zinc-700 text-xs mt-2">Press B to restore</div>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="w-screen h-screen bg-zinc-950 overflow-hidden flex flex-col">
       {/* Top bar */}
@@ -170,13 +216,20 @@ function MainView() {
           <h1 className="text-lg font-semibold text-zinc-100 tracking-tight">
             AccessLens
           </h1>
-          {/* Privacy badge */}
           <span className="text-[10px] font-medium uppercase tracking-wider bg-green-900/40 text-green-400 border border-green-800/50 px-2 py-0.5 rounded-full">
             on-device
           </span>
         </div>
 
         <div className="flex items-center gap-3">
+          {/* Help toggle */}
+          <button
+            onClick={() => setShowHelp((prev) => !prev)}
+            className="text-zinc-500 hover:text-zinc-300 text-sm font-mono transition-colors"
+            aria-label="Show keyboard shortcuts"
+          >
+            ?
+          </button>
           <StatsHUD
             connected={connected}
             inferMs={inferMs}
@@ -263,9 +316,36 @@ function MainView() {
               </div>
             </div>
           )}
+
+          {/* Keyboard shortcuts overlay */}
+          {showHelp && (
+            <div className="absolute inset-0 bg-black/80 flex items-center justify-center z-30">
+              <div className="bg-zinc-900 border border-zinc-700/50 rounded-xl px-6 py-5 shadow-2xl min-w-[300px]">
+                <div className="text-xs text-zinc-400 font-semibold uppercase tracking-wider mb-3">
+                  Keyboard Shortcuts
+                </div>
+                <div className="space-y-2">
+                  {SHORTCUTS.map((s) => (
+                    <div
+                      key={s.key}
+                      className="flex items-center justify-between gap-6"
+                    >
+                      <span className="text-sm text-zinc-300">{s.action}</span>
+                      <kbd className="text-xs font-mono bg-zinc-800 text-zinc-400 border border-zinc-700 px-2 py-0.5 rounded min-w-[40px] text-center">
+                        {s.key}
+                      </kbd>
+                    </div>
+                  ))}
+                </div>
+                <div className="text-[10px] text-zinc-600 mt-4 text-center">
+                  Press ? or Esc to close
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Right sidebar: narration log + describe-now */}
+        {/* Right sidebar: narration log + buttons */}
         <aside className="w-80 bg-zinc-900/40 border-l border-zinc-800/50 flex flex-col shrink-0">
           <div className="flex-1 p-4 min-h-0 overflow-hidden">
             <NarrationLog entries={logEntries} />
@@ -303,6 +383,15 @@ function MainView() {
               {searchMode ? "Exit Search" : "Find Object"}
               <span className="text-zinc-500 ml-1.5 font-normal text-xs">
                 F
+              </span>
+            </button>
+            <button
+              onClick={() => setBlindMode(true)}
+              className="w-full py-2 rounded-lg text-sm font-medium bg-zinc-800 text-zinc-300 hover:bg-zinc-700 border border-zinc-700/50 transition-colors"
+            >
+              Blind Mode
+              <span className="text-zinc-500 ml-1.5 font-normal text-xs">
+                B
               </span>
             </button>
           </div>

@@ -41,6 +41,25 @@ Open [http://localhost:3000](http://localhost:3000) in Safari or Chrome.
 
 Everything runs locally. No internet required after setup.
 
+## Keyboard shortcuts
+
+| Key | Action |
+|-----|--------|
+| Space | Describe full scene now |
+| F | Find object by name (type to search) |
+| M | Toggle mute |
+| B | Toggle blind mode (screen off, narration continues) |
+| ? | Show/hide keyboard shortcuts help |
+| Esc | Exit search or close overlay |
+
+## Key features
+
+- **Smart narration** — announces new objects, zone transitions, and count changes without spamming
+- **Scene change detection** — auto-describes when you enter a new scene (3+ new objects appear)
+- **Voice search** — press F, type an object name, get spoken location feedback
+- **Blind mode** — blacks out screen to save battery; narration continues in background
+- **On-device privacy** — zero data leaves your machine, no cloud APIs
+
 ## Model
 
 - **yolo26n** (nano variant), pretrained on COCO

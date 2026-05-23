@@ -14,6 +14,9 @@ export interface LogEntry {
   ts: number;
 }
 
+/** Threshold: if this many NEW tracks appear in a single frame, auto-describe. */
+const SCENE_CHANGE_THRESHOLD = 3;
+
 export function useNarrator() {
   const trackerRef = useRef<Tracker | null>(null);
   const narratorRef = useRef<Narrator | null>(null);
@@ -23,6 +26,8 @@ export function useNarrator() {
   const [trackedDetections, setTrackedDetections] = useState<TrackedObject[]>(
     [],
   );
+  const prevTrackIdsRef = useRef<Set<number>>(new Set());
+  const lastAutoDescribeRef = useRef<number>(0);
 
   // Lazy-init to avoid SSR issues with speechSynthesis
   const getTracker = useCallback(() => {
@@ -60,6 +65,38 @@ export function useNarrator() {
     }
   }, [settings.confidenceThreshold]);
 
+  const doDescribeNow = useCallback(
+    (speech: Speech, tracker: Tracker) => {
+      const tracks = tracker.getCurrentTracks();
+      if (tracks.length === 0) return;
+
+      const groupMap = new Map<string, UtteranceGroup>();
+      for (const t of tracks) {
+        const key = `${t.label}|${t.zone_x}`;
+        const existing = groupMap.get(key);
+        if (existing) {
+          existing.count++;
+          existing.area_frac = Math.max(existing.area_frac, t.area_frac);
+        } else {
+          groupMap.set(key, {
+            label: t.label,
+            zone_x: t.zone_x,
+            zone_depth: t.zone_depth,
+            count: 1,
+            area_frac: t.area_frac,
+          });
+        }
+      }
+
+      const summary = formatDescribeNow(Array.from(groupMap.values()));
+      speech.cancel();
+      speech.speak(summary, { priority: 10 });
+      const now = Date.now();
+      setLogEntries((prev) => [...prev.slice(-9), { text: summary, ts: now }]);
+    },
+    [],
+  );
+
   const processDetections = useCallback(
     (detections: Detection[]) => {
       const now = Date.now();
@@ -70,6 +107,22 @@ export function useNarrator() {
       // 1. Track
       const tracked = tracker.update(detections, now);
       setTrackedDetections(tracked);
+
+      // Scene change detection: if many new tracks appear at once, auto-describe
+      const currentIds = new Set(tracked.map((t) => t.id));
+      const prevIds = prevTrackIdsRef.current;
+      const newCount = tracked.filter((t) => !prevIds.has(t.id)).length;
+      prevTrackIdsRef.current = currentIds;
+
+      if (
+        newCount >= SCENE_CHANGE_THRESHOLD &&
+        now - lastAutoDescribeRef.current > 5000
+      ) {
+        lastAutoDescribeRef.current = now;
+        // Small delay so tracks stabilize before describing
+        setTimeout(() => doDescribeNow(speech, tracker), 500);
+        return;
+      }
 
       // 2. Sync speech state to narrator for interrupt rules
       narrator.currentUtteranceStartedAt = speech.startedAt;
@@ -108,7 +161,7 @@ export function useNarrator() {
         }
       }
     },
-    [getTracker, getNarrator, getSpeech],
+    [getTracker, getNarrator, getSpeech, doDescribeNow],
   );
 
   const describeNow = useCallback(() => {
@@ -127,32 +180,8 @@ export function useNarrator() {
       return;
     }
 
-    // Group by (label, zone_x) for the summary
-    const groupMap = new Map<string, UtteranceGroup>();
-    for (const t of tracks) {
-      const key = `${t.label}|${t.zone_x}`;
-      const existing = groupMap.get(key);
-      if (existing) {
-        existing.count++;
-        existing.area_frac = Math.max(existing.area_frac, t.area_frac);
-      } else {
-        groupMap.set(key, {
-          label: t.label,
-          zone_x: t.zone_x,
-          zone_depth: t.zone_depth,
-          count: 1,
-          area_frac: t.area_frac,
-        });
-      }
-    }
-
-    const summary = formatDescribeNow(Array.from(groupMap.values()));
-    speech.cancel();
-    speech.speak(summary, { priority: 10 });
-
-    const now = Date.now();
-    setLogEntries((prev) => [...prev.slice(-9), { text: summary, ts: now }]);
-  }, [getTracker, getSpeech]);
+    doDescribeNow(speech, tracker);
+  }, [getTracker, getSpeech, doDescribeNow]);
 
   const speakText = useCallback(
     (text: string) => {

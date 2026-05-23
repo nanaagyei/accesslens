@@ -32,7 +32,7 @@ describe("Narrator", () => {
 
   it("narrates a NEW object on first appearance", () => {
     const result = narrator.decide(1000, [makeTrack()], 0);
-    expect(result.utterance).toBe("person, center, near");
+    expect(result.utterance).toBe("person, center, near!");
   });
 
   it("returns null for an empty scene", () => {
@@ -70,7 +70,7 @@ describe("Narrator", () => {
     // Move to left at t=5001 (after 4s cooldown + 1.5s utterance gap)
     const movedTrack = makeTrack({ id: 1, zone_x: "left" });
     const r = narrator.decide(5001, [movedTrack], 0);
-    expect(r.utterance).toBe("person, left, near");
+    expect(r.utterance).toBe("person, left, near.");
   });
 
   // Mitigation: multiple identical objects count-merged
@@ -82,7 +82,7 @@ describe("Narrator", () => {
     ];
 
     const r = narrator.decide(1000, tracks, 0);
-    expect(r.utterance).toBe("three persons, center, near");
+    expect(r.utterance).toBe("three people, center, near!");
   });
 
   // Mitigation: distant objects dominated by near ones (priority)
@@ -107,7 +107,7 @@ describe("Narrator", () => {
     const r = narrator.decide(1000, tracks, 0);
     // person,center,near: 1.5(new)+1.0(near)+0.5(person) = 3.0
     // chair,left,far: 1.5(new)+0(far)+0(not person) = 1.5
-    expect(r.utterance).toBe("person, center, near");
+    expect(r.utterance).toBe("person, center, near!");
   });
 
   // Mitigation: MIN_UTTERANCE_GAP_MS
@@ -121,7 +121,7 @@ describe("Narrator", () => {
 
     // At t=2501 (1501ms after last utterance), should speak
     const r2 = narrator.decide(2501, [makeTrack({ id: 2, label: "chair" })], 0);
-    expect(r2.utterance).toBe("chair, center, near");
+    expect(r2.utterance).toBe("chair, center, near!");
   });
 
   // Mitigation: interrupt rules - high priority can interrupt
@@ -218,7 +218,7 @@ describe("Narrator", () => {
       [makeTrack({ id: 1, zone_depth: "far", area_frac: 0.08 })],
       0,
     );
-    expect(r.utterance).toBe("person, center");
+    expect(r.utterance).toBe("person, center!");
   });
 
   // Minimum seen frames filter
@@ -237,7 +237,7 @@ describe("Narrator", () => {
       [makeTrack({ id: 1, seenFrames: 3 })],
       0,
     );
-    expect(r2.utterance).toBe("person, center, near");
+    expect(r2.utterance).toBe("person, center, near!");
   });
 
   // Cleanup of stale track entries
@@ -247,7 +247,7 @@ describe("Narrator", () => {
 
     // Track 1 disappears, track 2 appears
     const r = narrator.decide(3000, [makeTrack({ id: 2, label: "chair" })], 0);
-    expect(r.utterance).toBe("chair, center, near");
+    expect(r.utterance).toBe("chair, center, near!");
 
     // If track 1 reappears with the same ID somehow (new track), it should be NEW again
     // (cleanup removed the old entry for id:1)

@@ -32,12 +32,12 @@ app.add_middleware(
 
 
 @app.websocket("/ws")
-async def websocket_route(websocket: WebSocket):
+async def websocket_route(websocket: WebSocket) -> None:
     origin = websocket.headers.get("origin", "unknown")
     logger.info("WebSocket connection from origin: %s", origin)
     await ws_endpoint(websocket)
 
 
 @app.get("/health")
-async def health():
+async def health() -> dict[str, str]:
     return {"status": "ok"}

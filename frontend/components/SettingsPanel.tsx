@@ -8,19 +8,21 @@ export default function SettingsPanel() {
   const { settings, updateSettings } = useSettings();
 
   return (
-    <div className="absolute top-3 left-3 z-20">
+    <div className="relative">
       {/* Gear toggle */}
       <button
         onClick={() => setOpen(!open)}
-        className="bg-zinc-800/80 hover:bg-zinc-700/80 text-zinc-300 rounded-lg p-2 text-sm"
+        className="bg-zinc-800/80 hover:bg-zinc-700/80 text-zinc-400 hover:text-zinc-200 rounded-lg p-2 text-sm transition-colors border border-zinc-700/50"
         aria-label={open ? "Close settings" : "Open settings"}
       >
         {open ? "✕" : "⚙"}
       </button>
 
       {open && (
-        <div className="mt-2 bg-zinc-900/95 rounded-lg p-4 w-64 space-y-4 text-sm text-zinc-200">
-          <h3 className="font-semibold text-zinc-100">Settings</h3>
+        <div className="absolute top-10 left-0 bg-zinc-900/95 rounded-lg p-4 w-64 space-y-4 text-sm text-zinc-200 border border-zinc-800/50 shadow-xl z-30">
+          <h3 className="font-semibold text-zinc-100 text-xs uppercase tracking-wider">
+            Settings
+          </h3>
 
           {/* Speech rate */}
           <div>
@@ -63,13 +65,13 @@ export default function SettingsPanel() {
           {/* Mute toggle */}
           <button
             onClick={() => updateSettings({ muted: !settings.muted })}
-            className={`w-full py-1.5 rounded text-xs font-medium ${
+            className={`w-full py-1.5 rounded text-xs font-medium transition-colors ${
               settings.muted
-                ? "bg-red-900/60 text-red-200"
-                : "bg-zinc-700 text-zinc-300"
+                ? "bg-red-900/60 text-red-200 hover:bg-red-900/80"
+                : "bg-zinc-700 text-zinc-300 hover:bg-zinc-600"
             }`}
           >
-            {settings.muted ? "Unmute Narration" : "Mute Narration"}
+            {settings.muted ? "Unmute (M)" : "Mute (M)"}
           </button>
         </div>
       )}

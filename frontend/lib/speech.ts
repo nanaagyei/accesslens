@@ -5,14 +5,30 @@ import { TTS_RATE, UTTERANCE_TTL_MS } from "./constants";
 /** Preferred voices in order of preference. */
 const PREFERRED_VOICES = ["Samantha", "Ava", "Google US English"];
 
+const VOICE_STORAGE_KEY = "accesslens-voice";
+
 let cachedVoice: SpeechSynthesisVoice | null = null;
 
-/** Find the best available English voice. */
+/** Find the best available English voice, preferring a previously saved choice. */
 export function getBestVoice(): SpeechSynthesisVoice | null {
   if (cachedVoice) return cachedVoice;
 
   const voices = speechSynthesis.getVoices();
   if (voices.length === 0) return null;
+
+  // Try saved voice first
+  try {
+    const savedName = localStorage.getItem(VOICE_STORAGE_KEY);
+    if (savedName) {
+      const saved = voices.find((v) => v.name === savedName);
+      if (saved) {
+        cachedVoice = saved;
+        return saved;
+      }
+    }
+  } catch {
+    // localStorage unavailable
+  }
 
   // Try preferred voices
   for (const name of PREFERRED_VOICES) {
@@ -21,6 +37,7 @@ export function getBestVoice(): SpeechSynthesisVoice | null {
     );
     if (match) {
       cachedVoice = match;
+      saveVoiceName(match.name);
       return match;
     }
   }
@@ -29,12 +46,22 @@ export function getBestVoice(): SpeechSynthesisVoice | null {
   const enUS = voices.find((v) => v.lang === "en-US");
   if (enUS) {
     cachedVoice = enUS;
+    saveVoiceName(enUS.name);
     return enUS;
   }
 
   // Last resort: first available
   cachedVoice = voices[0];
+  saveVoiceName(voices[0].name);
   return voices[0];
+}
+
+function saveVoiceName(name: string): void {
+  try {
+    localStorage.setItem(VOICE_STORAGE_KEY, name);
+  } catch {
+    // storage full or unavailable
+  }
 }
 
 /** Fire a silent utterance to unlock TTS on Safari/Chrome. */
@@ -48,6 +75,7 @@ export interface SpeakOptions {
   priority?: number;
   ttl_ms?: number;
   queuedAt?: number;
+  onEnd?: () => void;
 }
 
 /**
@@ -130,6 +158,7 @@ export class Speech {
       this.speaking = false;
       this._startedAt = -1;
       this._estDuration = 0;
+      opts.onEnd?.();
     };
 
     u.onerror = () => {

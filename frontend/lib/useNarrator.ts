@@ -87,6 +87,10 @@ export function useNarrator() {
         const spoken = speech.speak(result.utterance, {
           queuedAt: now,
           ttl_ms: UTTERANCE_TTL_MS,
+          onEnd: () => {
+            // Update narrator gap timing from actual speech end
+            narrator.markSpeechEnded(Date.now());
+          },
         });
 
         if (spoken) {
@@ -150,5 +154,20 @@ export function useNarrator() {
     setLogEntries((prev) => [...prev.slice(-9), { text: summary, ts: now }]);
   }, [getTracker, getSpeech]);
 
-  return { processDetections, describeNow, logEntries, trackedDetections };
+  const speakText = useCallback(
+    (text: string) => {
+      const speech = getSpeech();
+      speech.cancel();
+      speech.speak(text, { priority: 10 });
+    },
+    [getSpeech],
+  );
+
+  return {
+    processDetections,
+    describeNow,
+    logEntries,
+    trackedDetections,
+    speakText,
+  };
 }

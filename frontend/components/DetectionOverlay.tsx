@@ -7,6 +7,7 @@ interface DetectionOverlayProps {
   detections: Detection[];
   width: number;
   height: number;
+  highlightLabel?: string | null;
 }
 
 /** Simple hash to generate a color per class label. */
@@ -19,10 +20,35 @@ function labelColor(label: string): string {
   return `hsl(${hue}, 70%, 60%)`;
 }
 
+const CORNER_RADIUS = 6;
+
+function roundedRect(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  r: number,
+) {
+  const radius = Math.min(r, w / 2, h / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.lineTo(x + w - radius, y);
+  ctx.arcTo(x + w, y, x + w, y + radius, radius);
+  ctx.lineTo(x + w, y + h - radius);
+  ctx.arcTo(x + w, y + h, x + w - radius, y + h, radius);
+  ctx.lineTo(x + radius, y + h);
+  ctx.arcTo(x, y + h, x, y + h - radius, radius);
+  ctx.lineTo(x, y + radius);
+  ctx.arcTo(x, y, x + radius, y, radius);
+  ctx.closePath();
+}
+
 export default function DetectionOverlay({
   detections,
   width,
   height,
+  highlightLabel,
 }: DetectionOverlayProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -45,27 +71,36 @@ export default function DetectionOverlay({
       const pw = (x2 - x1) * width;
       const ph = (y2 - y1) * height;
 
+      const isHighlighted =
+        highlightLabel != null &&
+        det.label.toLowerCase().includes(highlightLabel.toLowerCase());
       const color = labelColor(det.label);
 
-      // Draw box
-      ctx.strokeStyle = color;
-      ctx.lineWidth = 2;
-      ctx.strokeRect(px1, py1, pw, ph);
+      // Draw rounded box (thick + bright if highlighted)
+      ctx.strokeStyle = isHighlighted ? "#facc15" : color;
+      ctx.lineWidth = isHighlighted ? 4 : 2;
+      roundedRect(ctx, px1, py1, pw, ph, CORNER_RADIUS);
+      ctx.stroke();
 
-      // Draw label background
-      const text = `${det.label} ${Math.round(det.confidence * 100)}%`;
-      ctx.font = "14px monospace";
+      // Draw label chip (class name only, no confidence)
+      const text = det.label;
+      ctx.font = "12px system-ui, sans-serif";
       const metrics = ctx.measureText(text);
-      const textH = 18;
+      const chipH = 20;
+      const chipW = metrics.width + 12;
+      const chipX = px1;
+      const chipY = py1 - chipH - 2;
 
-      ctx.fillStyle = color;
-      ctx.fillRect(px1, py1 - textH, metrics.width + 8, textH);
+      // Chip background with rounded corners
+      ctx.fillStyle = isHighlighted ? "#facc15" : color;
+      roundedRect(ctx, chipX, chipY, chipW, chipH, 4);
+      ctx.fill();
 
-      // Draw label text
+      // Chip text
       ctx.fillStyle = "#000";
-      ctx.fillText(text, px1 + 4, py1 - 4);
+      ctx.fillText(text, chipX + 6, chipY + 14);
     }
-  }, [detections, width, height]);
+  }, [detections, width, height, highlightLabel]);
 
   return (
     <canvas

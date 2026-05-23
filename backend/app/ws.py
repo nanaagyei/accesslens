@@ -4,13 +4,14 @@ import asyncio
 import json
 import logging
 import time
+from typing import Any
 
 import cv2
 import numpy as np
 from fastapi import WebSocket, WebSocketDisconnect
 
 from backend.app.inference import YoloInference
-from backend.app.models import DetectionResponse
+from backend.app.models import Detection, DetectionResponse
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +31,7 @@ async def ws_endpoint(websocket: WebSocket) -> None:
     logger.info("WebSocket client connected")
 
     in_flight = False
-    pending_header: dict | None = None
+    pending_header: dict[str, Any] | None = None
 
     try:
         while True:
@@ -60,7 +61,7 @@ async def ws_endpoint(websocket: WebSocket) -> None:
 
                 header = pending_header
                 pending_header = None
-                frame_id = header.get("id", 0)
+                frame_id = int(header.get("id", 0))
                 jpeg_bytes = message["bytes"]
 
                 in_flight = True
@@ -86,7 +87,7 @@ async def ws_endpoint(websocket: WebSocket) -> None:
         logger.exception("WebSocket error")
 
 
-def _process_frame(jpeg_bytes: bytes):
+def _process_frame(jpeg_bytes: bytes) -> tuple[list[Detection], float]:
     """Decode JPEG and run inference. Runs in a thread."""
     buf = np.frombuffer(jpeg_bytes, dtype=np.uint8)
     frame = cv2.imdecode(buf, cv2.IMREAD_COLOR)

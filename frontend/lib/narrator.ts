@@ -1,5 +1,5 @@
 import type { TrackedObject } from "./tracker";
-import { formatUtterance, type UtteranceGroup } from "./format";
+import { formatUtterance, type UtteranceGroup, type UtteranceState } from "./format";
 import {
   MIN_UTTERANCE_GAP_MS,
   PER_TRACK_COOLDOWN_MS,
@@ -171,7 +171,7 @@ export class Narrator {
     // 5. Format and score each group
     const mergedCandidates: NarrationCandidate[] = [];
     for (const cand of groups.values()) {
-      cand.text = formatUtterance(cand as UtteranceGroup);
+      cand.text = formatUtterance(cand as UtteranceGroup, cand.state as UtteranceState);
       cand.priority = computePriority(
         cand.state,
         cand.zone_depth,
@@ -239,6 +239,11 @@ export class Narrator {
       shouldInterrupt,
       candidate: chosen,
     };
+  }
+
+  /** Update lastUtteranceAt when speech actually ends (from onend callback). */
+  markSpeechEnded(endedAt: number): void {
+    this.lastUtteranceAt = endedAt;
   }
 
   /** Reset all state. */

@@ -7,12 +7,14 @@ import { Detection, DetectionResponse } from "@/lib/types";
 interface WebcamCaptureProps {
   onDetections: (detections: Detection[], inferMs: number) => void;
   onConnectionChange: (connected: boolean) => void;
+  onFrameActivity?: (sending: boolean) => void;
   paused?: boolean;
 }
 
 export default function WebcamCapture({
   onDetections,
   onConnectionChange,
+  onFrameActivity,
   paused = false,
 }: WebcamCaptureProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -23,11 +25,14 @@ export default function WebcamCapture({
   const inFlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const captureIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pausedRef = useRef(paused);
+  const onFrameActivityRef = useRef(onFrameActivity);
   pausedRef.current = paused;
+  onFrameActivityRef.current = onFrameActivity;
 
   const handleMessage = useCallback(
     (response: DetectionResponse) => {
       inFlightRef.current = false;
+      onFrameActivityRef.current?.(false);
       if (inFlightTimerRef.current) {
         clearTimeout(inFlightTimerRef.current);
         inFlightTimerRef.current = null;
@@ -58,10 +63,12 @@ export default function WebcamCapture({
         if (!blob) return;
         const id = frameIdRef.current++;
         inFlightRef.current = true;
+        onFrameActivityRef.current?.(true);
 
         // Timeout: release in-flight guard after 300ms
         inFlightTimerRef.current = setTimeout(() => {
           inFlightRef.current = false;
+          onFrameActivityRef.current?.(false);
         }, 300);
 
         ws.sendFrame(id, blob, 640, 480);

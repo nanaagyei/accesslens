@@ -3,11 +3,30 @@ const NUMBER_WORDS: Record<number, string> = {
   3: "three",
   4: "four",
   5: "five",
+  6: "six",
+  7: "seven",
+  8: "eight",
+  9: "nine",
+  10: "ten",
 };
 
 function numberWord(n: number): string {
   return NUMBER_WORDS[n] ?? String(n);
 }
+
+/** Irregular plurals for COCO class names. */
+const IRREGULAR_PLURALS: Record<string, string> = {
+  person: "people",
+  knife: "knives",
+  mouse: "mice",
+};
+
+function pluralize(label: string, count: number): string {
+  if (count <= 1) return label;
+  return IRREGULAR_PLURALS[label] ?? `${label}s`;
+}
+
+export type UtteranceState = "NEW" | "MOVED" | "STABLE";
 
 export interface UtteranceGroup {
   label: string;
@@ -24,13 +43,19 @@ export interface UtteranceGroup {
  * - Count > 1: "two people, center"
  * - Drop zone_depth if "far"
  * - Drop zone_x if area_frac > 0.5 (object spans most of frame)
+ * - Append "!" for NEW objects, "." for MOVED (TTS inflection)
  */
-export function formatUtterance(group: UtteranceGroup): string {
+export function formatUtterance(
+  group: UtteranceGroup,
+  state?: UtteranceState,
+): string {
   const parts: string[] = [];
 
-  // Label with optional count
+  // Label with optional count and proper pluralization
   if (group.count > 1) {
-    parts.push(`${numberWord(group.count)} ${group.label}s`);
+    parts.push(
+      `${numberWord(group.count)} ${pluralize(group.label, group.count)}`,
+    );
   } else {
     parts.push(group.label);
   }
@@ -45,7 +70,13 @@ export function formatUtterance(group: UtteranceGroup): string {
     parts.push(group.zone_depth);
   }
 
-  return parts.join(", ");
+  let text = parts.join(", ");
+
+  // Tone markers for TTS inflection
+  if (state === "NEW") text += "!";
+  else if (state === "MOVED") text += ".";
+
+  return text;
 }
 
 /**

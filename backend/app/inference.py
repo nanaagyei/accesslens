@@ -2,7 +2,7 @@
 
 import logging
 import time
-from pathlib import Path
+from typing import Any
 
 import numpy as np
 
@@ -18,7 +18,7 @@ class YoloInference:
 
     def __init__(self, model_path: str | None = None) -> None:
         self._model_path = model_path or settings.model_path
-        self._model = None
+        self._model: Any = None
         self._names: dict[int, str] = {}
         self._frame_count = 0
 
@@ -27,7 +27,7 @@ class YoloInference:
         if self._model is not None:
             return
 
-        from yolo26mlx import YOLO
+        from yolo26mlx import YOLO  # type: ignore[import-untyped]
 
         logger.info("Loading YOLO26 model from %s", self._model_path)
         self._model = YOLO(self._model_path)
@@ -42,7 +42,9 @@ class YoloInference:
         self._model.predict(dummy, conf=0.5)
         logger.info("Model ready. Classes: %d", len(self._names))
 
-    def predict(self, frame: np.ndarray, conf: float | None = None) -> tuple[list[Detection], float]:
+    def predict(
+        self, frame: np.ndarray, conf: float | None = None,
+    ) -> tuple[list[Detection], float]:
         """Run inference on a frame.
 
         Args:

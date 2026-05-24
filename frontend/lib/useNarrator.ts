@@ -50,9 +50,11 @@ export function useNarrator() {
     if (!speechRef.current) {
       speechRef.current = new Speech();
       speechRef.current.init();
+      speechRef.current.setRate(settings.speechRate);
+      speechRef.current.setMuted(settings.muted);
     }
     return speechRef.current;
-  }, []);
+  }, [settings.speechRate, settings.muted]);
 
   // Sync settings to speech instance
   useEffect(() => {
@@ -70,6 +72,9 @@ export function useNarrator() {
       });
     }
   }, [settings.confidenceThreshold]);
+
+  // When a describe-now is active, suppress normal narration interrupts
+  const describeActiveUntilRef = useRef<number>(0);
 
   const doDescribeNow = useCallback(
     (speech: Speech, tracker: Tracker) => {
@@ -97,6 +102,8 @@ export function useNarrator() {
       const summary = formatDescribeNow(Array.from(groupMap.values()));
       speech.cancel();
       speech.speak(summary, { priority: 10 });
+      // Protect describe-now from interruption for 6 seconds
+      describeActiveUntilRef.current = Date.now() + 6000;
       const now = Date.now();
       setLogEntries((prev) => [...prev.slice(-9), { text: summary, ts: now }]);
     },
@@ -145,11 +152,16 @@ export function useNarrator() {
         return;
       }
 
-      // 2. Sync speech state to narrator for interrupt rules
+      // 2. If describe-now is still speaking, suppress normal narration
+      if (now < describeActiveUntilRef.current) {
+        return;
+      }
+
+      // 3. Sync speech state to narrator for interrupt rules
       narrator.currentUtteranceStartedAt = speech.startedAt;
       narrator.currentUtteranceEstDuration = speech.estDuration;
 
-      // 3. Narrate
+      // 4. Narrate
       const result = narrator.decide(now, tracked, 0);
 
       // 4. Speak

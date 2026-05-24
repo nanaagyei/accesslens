@@ -1,4 +1,4 @@
-.PHONY: setup setup-backend setup-frontend run run-backend run-frontend test test-backend test-frontend benchmark fmt lint
+.PHONY: setup setup-backend setup-frontend run run-backend run-frontend test test-backend test-frontend benchmark eval-frames fmt lint
 
 setup: setup-backend setup-frontend
 
@@ -31,6 +31,9 @@ test-frontend:
 
 benchmark:
 	.venv/bin/python backend/scripts/benchmark.py
+
+eval-frames:
+	.venv/bin/python eval/save_frames.py
 
 fmt:
 	.venv/bin/ruff format backend/

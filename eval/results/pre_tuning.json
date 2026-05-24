@@ -1,0 +1,22 @@
+{
+  "timestamp": "2026-05-24T10:00:00",
+  "config_snapshot": {
+    "confidence_threshold": 0.45,
+    "min_utterance_gap_ms": 1500,
+    "per_track_cooldown_ms": 4000,
+    "stable_scene_timeout_ms": 10000,
+    "tts_rate": 1.3,
+    "min_bbox_area_frac": 0.01
+  },
+  "tests": {
+    "static": { "utterances": 2, "first_ms": 1200, "pass": true },
+    "walk": { "utterances": 12, "perceived_spam": false, "pass": true },
+    "swap": { "pass": true },
+    "multi": { "pass": true },
+    "cross_zone": { "utterances": 3, "pass": true },
+    "latency": { "p50_ms": 85, "p95_ms": 140, "pass": true },
+    "describe_now": { "pass": true },
+    "fresh_clone": { "time_to_working_minutes": 3, "pass": true }
+  },
+  "notes": "Pre-tuning baseline. Voice sounds robotic with no pauses between segments. TTS rate too fast at 1.3x."
+}

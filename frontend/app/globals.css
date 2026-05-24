@@ -2,4 +2,6 @@
 
 @theme {
   --animate-pulse: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --font-sans: var(--font-space-grotesk), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
 }

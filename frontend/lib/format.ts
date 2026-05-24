@@ -37,10 +37,15 @@ export interface UtteranceGroup {
 }
 
 /**
- * Format a single narration cue.
+ * Format a single narration cue with natural pauses.
  *
- * Rules from 02_AUDIO_UX.md:
- * - Count > 1: "two people, center"
+ * Pause pattern:
+ *   "person ,,, center, near"
+ *   - Long pause (,,,) after the object label
+ *   - Short pause (,) between position parts
+ *
+ * Rules:
+ * - Count > 1: "two people ,,, center"
  * - Drop zone_depth if "far"
  * - Drop zone_x if area_frac > 0.5 (object spans most of frame)
  * - Append "!" for NEW objects, "." for MOVED (TTS inflection)
@@ -49,28 +54,36 @@ export function formatUtterance(
   group: UtteranceGroup,
   state?: UtteranceState,
 ): string {
-  const parts: string[] = [];
-
   // Label with optional count and proper pluralization
+  let label: string;
   if (group.count > 1) {
-    parts.push(
-      `${numberWord(group.count)} ${pluralize(group.label, group.count)}`,
-    );
+    label = `${numberWord(group.count)} ${pluralize(group.label, group.count)}`;
   } else {
-    parts.push(group.label);
+    label = group.label;
   }
+
+  // Position parts (zone_x + depth) joined with short comma pauses
+  const posParts: string[] = [];
 
   // Zone X (skip if object spans > 50% of frame)
   if (group.area_frac <= 0.5) {
-    parts.push(group.zone_x);
+    posParts.push(group.zone_x);
   }
 
   // Depth (skip if "far")
   if (group.zone_depth !== "far") {
-    parts.push(group.zone_depth);
+    posParts.push(group.zone_depth);
   }
 
-  let text = parts.join(", ");
+  // Build final text:
+  // Long pause (,,,) after label, short pause (,) between position parts.
+  // Triple comma creates ~500ms pause in Web Speech API voices.
+  let text: string;
+  if (posParts.length > 0) {
+    text = `${label},,, ${posParts.join(", ")}`;
+  } else {
+    text = label;
+  }
 
   // Tone markers for TTS inflection
   if (state === "NEW") text += "!";
@@ -81,7 +94,10 @@ export function formatUtterance(
 
 /**
  * Format a full "describe now" summary.
- * Example: "Three objects in view. Person, center, near. Chair, left."
+ * Pattern: "Two objects in view,,, person,,, center, near. chair,,, left."
+ * - Long pause after "in view"
+ * - Each item uses the standard formatUtterance rhythm
+ * - Period between items creates a sentence-boundary pause
  */
 export function formatDescribeNow(groups: UtteranceGroup[]): string {
   if (groups.length === 0) return "Nothing in view.";
@@ -93,5 +109,5 @@ export function formatDescribeNow(groups: UtteranceGroup[]): string {
       : `${numberWord(totalCount).charAt(0).toUpperCase() + numberWord(totalCount).slice(1)} objects`;
 
   const items = groups.map((g) => formatUtterance(g));
-  return `${countWord} in view. ${items.join(". ")}.`;
+  return `${countWord} in view.,,, ${items.join(". ")}.`;
 }

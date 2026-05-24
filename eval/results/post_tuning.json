@@ -1,0 +1,22 @@
+{
+  "timestamp": "2026-05-24T11:00:00",
+  "config_snapshot": {
+    "confidence_threshold": 0.45,
+    "min_utterance_gap_ms": 1500,
+    "per_track_cooldown_ms": 4000,
+    "stable_scene_timeout_ms": 10000,
+    "tts_rate": 1.15,
+    "min_bbox_area_frac": 0.01
+  },
+  "tests": {
+    "static": { "utterances": 2, "first_ms": 1400, "pass": true },
+    "walk": { "utterances": 10, "perceived_spam": false, "pass": true },
+    "swap": { "pass": true },
+    "multi": { "pass": true },
+    "cross_zone": { "utterances": 2, "pass": true },
+    "latency": { "p50_ms": 85, "p95_ms": 140, "pass": true },
+    "describe_now": { "pass": true },
+    "fresh_clone": { "time_to_working_minutes": 3, "pass": true }
+  },
+  "notes": "Post-tuning. TTS rate reduced to 1.15x. Ellipsis pauses added between segments (person ... center ... near). Voice sounds more natural with clear pauses between position and object. Slightly fewer utterances on walk test due to slower speech allowing less gap between cues."
+}

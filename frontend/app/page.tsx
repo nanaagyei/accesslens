@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
-import StartScreen from "@/components/StartScreen";
+import LandingPage from "@/components/landing/LandingPage";
 import WebcamCapture from "@/components/WebcamCapture";
 import DetectionOverlay from "@/components/DetectionOverlay";
 import StatsHUD from "@/components/StatsHUD";
@@ -265,7 +265,7 @@ function MainView() {
       <div className="flex flex-1 min-h-0">
         {/* Webcam panel */}
         <div className="flex-1 relative flex items-center justify-center bg-black min-w-0">
-          <div className="relative w-full max-w-[720px] aspect-4/3">
+          <div className="relative w-full max-w-[960px] aspect-4/3">
             <WebcamCapture
               onDetections={handleDetections}
               onConnectionChange={handleConnectionChange}
@@ -408,7 +408,7 @@ export default function Home() {
   const [started, setStarted] = useState(false);
 
   if (!started) {
-    return <StartScreen onStart={() => setStarted(true)} />;
+    return <LandingPage onStart={() => setStarted(true)} />;
   }
 
   return (

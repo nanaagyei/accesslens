@@ -30,7 +30,7 @@ class Settings(BaseSettings):
     utterance_ttl_ms: int = 800
 
     # TTS
-    tts_rate: float = 1.3
+    tts_rate: float = 1.0
 
     # Frame capture
     target_fps: int = 10
